@@ -14,6 +14,10 @@ class HomeScreen extends Phaser.Scene {
         var player;
         var cursor;
         var stars;
+        var score = 0;
+        var scoreText;
+        var bombs;
+        var gameOver = false;
         var {physics} = Config;
     }
 
@@ -76,8 +80,54 @@ class HomeScreen extends Phaser.Scene {
             repeat: 11,
             setXY: { x: 12, y: 0, stepX: 70 }
         })
-        
 
+        this.stars.children.iterate(function(child) {
+            child.setBounceY( Phaser.Math.FloatBetween(0.2, 0.4) )
+        })
+
+        /**
+         * Collect Stars
+         */
+        this.physics.add.collider(this.stars, this.platforms);
+        this.physics.add.overlap(this.player, this.stars, this.collectStar, null, this);
+        
+        /**
+         * Set Score
+         */
+        this.scoreText = this.add.text(16, 16, 'Score: ', {fontSize: '32px', fill: '#000'})
+
+        /**
+         * Create Bomb
+         */
+        this.bombs = this.physics.add.group();
+        this.physics.add.collider( this.bombs, this.platforms );
+        this.physics.add.collider( this.player, this.bombs, this.hitBomb, null, this );
+    }
+
+    collectStar(player, star) {
+        star.disableBody(true, true);
+        this.score += parseInt(10, 10);
+        this.scoreText.setText('Score: '+ this.score);
+
+        if( this.stars.countActive(true) === 0 ) {
+            this.stars.children.iterate(function(child) {
+                child.enableBody(true, child.x, 0, true, true);
+            })
+
+            var x = (this.player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
+
+            var bomb = this.bombs.create(x, 16, 'bomb');
+            bomb.setBounce(1);
+            bomb.setCollideWorldBounds(true);
+            bomb.setVelocity(Phaser.Math.Between(-200, 200), 20)
+        }
+    }
+
+    hitBomb(player, bomb) {
+        this.physics.pause();
+        player.setTint(0xff0000);
+        player.anims.play('turn');
+        this.gameOver = true;
     }
 
     update() {
